@@ -1,0 +1,26 @@
+Package: EDAPackage
+Type: Package
+Title: Exploratory Data Analisis
+Version: 0.5.0
+Author: 
+    person("Carlos", "Martínez Torró", , "carlos.martinez@grifols.com", role = c("aut", "cre"),
+           comment = c(ORCID = "0000-0002-3529-3355"))
+Maintainer: Carlos Martínez Torró <carlos.martinez@grifols.com>
+Description: 
+    This package contains several functions that perform an exploratory data
+    analysis on a given dataset. It provides a numerical and graphical summary
+    of the dataframe and it also offers some customization, as it is possible
+    to remove uninformative columns of the dataframe with a vector and it is
+    also possible to obtain grouped numerical and graphical summaries for any 
+    desired variables. The names of the variables and their levels can be
+    transformed to R-Friendly values with Janitor if desired and the results
+    of the graphical summaries can be exported to PDF files. 
+Imports: readxl, kableExtra, ggplot2, ggpubr, dplyr, plyr, pdftools,
+        gridExtra, janitor, purrr, tidyverse
+License: MIT
+Encoding: UTF-8
+LazyData: true
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.2.1
+NeedsCompilation: no
+Packaged: 2022-11-21 11:22:00 UTC; blmhy
