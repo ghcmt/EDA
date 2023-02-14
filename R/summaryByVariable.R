@@ -35,36 +35,61 @@ summaryByVariable <- function(df, variable, export = NULL, exportAll = FALSE, st
   packIndex <- rep(nums, each = n_distinct(df[variable]))
   statsDf <- as.data.frame(groupedSt)
 
-  # If the dataframe has six columns, it will have the p-Value columns. In this
-  # case, we transform these two columns to numeric:
-  if (ncol(statsDf) == 6) {
-    statsDf <- transform(statsDf, p.Value = as.numeric(p.Value),
-                         p.Value2 = as.numeric(p.Value2))
+  # If the dataframe has seven columns, it will have the p-Value columns. In this
+  # case, we transform the last two columns to numeric:
+  if (ncol(statsDf) == 7) {
+    statsDf[, 6:7] <- sapply(statsDf[, 6:7], as.numeric)
   }
 
-  # Then, the table is formatted depending on the number of columns of the DF
-  # (that, in turn, depends on the levels of the variable and the 'statistics' argument):
-  if (ncol(statsDf) == 6) {
-    groupedT <- kable(statsDf, col.names = c("Variable", variable, "Sample (NA)", "Mean ± SD", "p.Value[note]", "p.Value2[note]"), booktabs = TRUE, caption = "Numerical Summary by Grouping Variable",
-                      format = "html", align= "c") %>%
-      row_spec(0, bold = T, color = "black", background = "#dcecf5") %>%
-      column_spec(1, border_right = T) %>%
-      kable_paper("hover", font_size = 18, fixed_thead = T,
-                  html_font =  "\"Trebuchet MS\", verdana, sans-serif") %>%
-      column_spec(5, color = ifelse(statsDf$p.Value < 0.05 & !is.na(statsDf$p.Value),
-                                    "red", "black")) %>%
-      column_spec(6, color = ifelse(statsDf$p.Value2 < 0.05 & !is.na(statsDf$p.Value2),
-                                    "red", "black")) %>%
-      add_footnote(c("Student's t-test were performed to assess statistical significance (p.Value). The p-value is NA if one of the groups has a sample of N = 0",
-                     "P.Value2 refers to the p-value obtained using the Mann-Whitney non-parametric test. NA refers to the outcome of assessing statistical significance with a group N = 0"),
-                   notation = "symbol") %>%
-      pack_rows(index = table(packIndex), background = "#fde9b7")
+  # Then, we evaluate if the provided dataframe has 7 columns (to identify
+  # if it contains p-values that we want to highlight if lower than 0.05) and
+  # we also indirectly assess the levels of the variables. If the column
+  # 'p.value.tSt' is present in the dataframe, then the group variable has two
+  # levels and we will show in red p-values lower than 0.05 resulting from the
+  # Student's t test and the Mann-Whitney test. If the dataframe has 7 columns
+  # but it contains a p.Value associated with ANOVA, we will proceed otherwise.
+  # The footnote also changes depending on the applied test.
+  # Formatem la taula en funció dels nivells de la variable:
+  if (ncol(statsDf) == 7 & "p.Value.tSt" %in% colnames(statsDf)) {
+    groupedT <- kableExtra::kable(statsDf, col.names = c("Variable", variable, "Sample (NA)", "Mean ± SD", "Median", "p.Value[note]", "p.Value2[note]"), booktabs = TRUE, caption = "Numerical Summary by Grouping Variable",
+                                  format = "html", align= "c") %>%
+      kableExtra::row_spec(0, bold = T, color = "black", background = "#dcecf5") %>%
+      kableExtra::column_spec(1, border_right = T) %>%
+      kableExtra::kable_paper("hover", font_size = 18, fixed_thead = T,
+                              html_font =  "\"Trebuchet MS\", verdana, sans-serif") %>%
+      kableExtra::column_spec(6, color = ifelse(statsDf$p.Value.tSt < 0.05 & !is.na(statsDf$p.Value.tSt),
+                                                "red", "black")) %>%
+      kableExtra::column_spec(7, color = ifelse(statsDf$p.Value.MW < 0.05 & !is.na(statsDf$p.Value.MW),
+                                                "red", "black")) %>%
+      kableExtra::add_footnote(c("Student's t-test were performed to assess statistical significance (p.Value). The p-value is NA if one of the groups has a sample of N = 0",
+                                 "P.Value2 refers to the p-value obtained using the Mann-Whitney non-parametric test. NA refers to the outcome of assessing statistical significance with a group N = 0"),
+                               notation = "symbol") %>%
+      kableExtra::pack_rows(index = table(packIndex), background = "#fde9b7")
+
+    # Grouping variable with more than two levels:
+  } else if(ncol(statsDf) == 7 & "p.Value.AOV" %in% colnames(statsDf)) {
+    groupedT <- kableExtra::kable(statsDf, col.names = c("Variable", variable, "Sample (NA)", "Mean ± SD", "Median", "p.Value[note]", "p.Value2[note]"), booktabs = TRUE, caption = "Numerical Summary by Grouping Variable",
+                                  format = "html", align= "c") %>%
+      kableExtra::row_spec(0, bold = T, color = "black", background = "#dcecf5") %>%
+      kableExtra::column_spec(1, border_right = T) %>%
+      kableExtra::kable_paper("hover", font_size = 18, fixed_thead = T,
+                              html_font =  "\"Trebuchet MS\", verdana, sans-serif") %>%
+      kableExtra::column_spec(6, color = ifelse(statsDf$p.Value.AOV < 0.05 & !is.na(statsDf$p.Value.AOV),
+                                                "red", "black")) %>%
+      kableExtra::column_spec(7, color = ifelse(statsDf$p.Value.KW < 0.05 & !is.na(statsDf$p.Value.KW),
+                                                "red", "black")) %>%
+      kableExtra::add_footnote(c("An ANOVA test was performed to assess statistical significance (p.Value). The p-value is NA if one of the groups has a sample of N = 0. A p-value lower than 0.05 indicates that there are significative differences between groups; however, a post-hoc analysis is required to identify the specific differences between the tested groups.",
+                                 "The second p-value was obtained using the Kruskal-Wallis non-parametric test. NA refers to the outcome of assessing statistical significance with a group N = 0. A p-value lower than 0.05 indicates that there are significative differences between groups; however, a post-hoc analysis is required to identify the specific differences between the tested groups."),
+                               notation = "symbol") %>%
+      kableExtra::pack_rows(index = table(packIndex), background = "#fde9b7")
+
+    # Without p-values:
   } else {
-    groupedT <- kable(statsDf, col.names = c("Variable", variable, "Sample (NA)", "Mean ± SD"), booktabs = TRUE, caption = "Numerical Summary by Grouping Variable", format = "html", align= "c") %>%
-      row_spec(0, bold = T, color = "black", background = "#dcecf5") %>%
-      column_spec(1, border_right = T) %>%
-      kable_paper("hover", font_size = 18, fixed_thead = T, html_font =  "\"Trebuchet MS\", verdana, sans-serif") %>%
-      pack_rows(index = table(packIndex), background = "#fde9b7")
+    groupedT <- kableExtra::kable(statsDf, col.names = c("Variable", variable, "Sample (NA)", "Mean ± SD", "Median"), booktabs = TRUE, caption = "Numerical Summary by Grouping Variable", format = "html", align= "c") %>%
+      kableExtra::row_spec(0, bold = T, color = "black", background = "#dcecf5") %>%
+      kableExtra::column_spec(1, border_right = T) %>%
+      kableExtra::kable_paper("hover", font_size = 18, fixed_thead = T, html_font =  "\"Trebuchet MS\", verdana, sans-serif") %>%
+      kableExtra::pack_rows(index = table(packIndex), background = "#fde9b7")
   }
 
   # We print the generated table:

@@ -41,5 +41,4 @@ basicSummary <- function(df) {
                 html_font =  "\"Trebuchet MS\", verdana, sans-serif")
 
   print(fmtSum)
-
 }

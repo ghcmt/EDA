@@ -23,6 +23,7 @@
 #' @export
 plotEDA <- function(df, variable = NULL, export = NULL, exportAll = FALSE) {
   # We create a 'Results' folder inside the working directory.
+  dir.create(file.path(getwd(), "results"))
   resultsDir <- file.path(getwd(), "results")
 
   if(!is.null(export) & !isTRUE(exportAll)) {

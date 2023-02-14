@@ -15,13 +15,13 @@
 #' @return Grouped statistics by variable.
 #' @export
 statsByGroup <- function(df, groupV, var, statistics = TRUE) {
-  # We start by transforming these variables to symbol to ease their manipulation
-  # inside the function (this prevents issues related to quotation marks)
+  # We start by calculating the levels of each grouping variable:
+  levels <- dplyr::n_distinct(df[groupV])
+
+  # Then, we transforming these variables to symbol to ease their manipulation
+  # inside the function (this is associated with the dplyr evaluation).
   groupV <- sym(groupV)
   var <- sym(var)
-
-  # Then, we calculate the levels of each grouping variable:
-  levels <- dplyr::n_distinct(df$groupV)
 
   # Next, depending on the levels that we have just calculated and the value of the
   # argument 'statistics', we will generate a table with p-values or without them.
@@ -35,14 +35,31 @@ statsByGroup <- function(df, groupV, var, statistics = TRUE) {
       dplyr::group_by(!! groupV) %>%
       dplyr::summarise("Sample (NAs)" = paste(sum(!is.na(!! var)), " (", sum(is.na(!! var)), ")", sep = ""),
                        "Mean ± SD" = paste(round(mean(!! var, na.rm = TRUE), 2), "±", round(sd(!! var, na.rm = TRUE), 2)),
-                       p.Value = format(tryCatch({t.test(!! var ~ !! groupV, data = df, na.action = na.omit)$p.value}, error = function(e){NA}), digits = 3),
-                       p.Value2 = format(tryCatch({wilcox.test(!! var ~ !! groupV, data = df, na.action = na.omit)$p.value}, error = function(e){NA}), digits = 3))
+                       "Median" = round(median(!! var, na.rm = TRUE), 2),
+                       p.Value.tSt = format(tryCatch({t.test(!! var ~ !! groupV, data = df, na.action = na.omit)$p.value}, error = function(e){NA}), digits = 3),
+                       p.Value.MW = format(tryCatch({wilcox.test(!! var ~ !! groupV, data = df, na.action = na.omit)$p.value}, error = function(e){NA}), digits = 3))
 
+    # If we want statistics and we have more than three levels, we will proceed
+    # with an ANOVA (parametric) and Kruskal-Wallis (non-parametric) tests,
+    # instead of the Student's t test and the Mann-Whitney test.
+  } else if (levels > 2 & isTRUE(statistics)) {
+    groupedStats <- df %>%
+      dplyr::group_by(!! groupV) %>%
+      dplyr::summarise("Sample (NAs)" = paste(sum(!is.na(!! var)), " (", sum(is.na(!! var)), ")", sep = ""),
+                       "Mean ± SD" = paste(round(mean(!! var, na.rm = TRUE), 2), "±", round(sd(!! var, na.rm = TRUE), 2)),
+                       "Median" = round(median(!! var, na.rm = TRUE), 2),
+                       p.Value.AOV = format(tryCatch({summary(aov(!! var ~ !! groupV, data = df, na.action = na.omit))[[1]][["Pr(>F)"]][[1]]},
+                                                     error = function(e){NA}), digits = 3),
+                       p.Value.KW = format(tryCatch({kruskal.test(!! var ~ !! groupV, data = df, na.action = na.omit)$p.value},
+                                                    error = function(e){NA}), digits = 3))
+
+    # If we don't want statistics, we only show sample, mean and median:
   } else {
     groupedStats <- df %>%
       dplyr::group_by(!! groupV) %>%
       dplyr::summarise("Sample (NAs)" = paste(sum(!is.na(!! var)), " (", sum(is.na(!! var)), ")", sep = ""),
-                       "Mean ± SD" = paste(round(mean(!! var, na.rm = TRUE), 2), "±", round(sd(!! var, na.rm = TRUE), 2)))
+                       "Mean ± SD" = paste(round(mean(!! var, na.rm = TRUE), 2), "±", round(sd(!! var, na.rm = TRUE), 2)),
+                       "Median" = round(median(!! var, na.rm = TRUE), 2))
   }
 
   # Finally, the function will return a groupedStats table:

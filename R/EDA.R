@@ -33,7 +33,8 @@
 #' @importFrom tidyr drop_na all_of
 #' @import kableExtra ggplot2 gridExtra ggpubr
 #' @export
-EDA <- function(df, rmCol = NULL, groupingVar = NULL, janitor = TRUE, fullTable = TRUE, statistics = TRUE, transf = NULL, export = NULL, exportAll = FALSE){
+EDA <- function(df, rmCol = NULL, groupingVar = NULL, janitor = TRUE, fullTable = TRUE,
+                statistics = TRUE, transf = NULL, export = NULL, exportAll = FALSE){
 
   cat('\n## EDA \n')
 
@@ -88,6 +89,7 @@ EDA <- function(df, rmCol = NULL, groupingVar = NULL, janitor = TRUE, fullTable 
         df[[i]] <- na_if(df[[i]], 'na')
       }
       meanSD <- ""
+      med <- ""
       fmtFreq <- ""
       minV <- ""
       maxV <- ""
@@ -107,8 +109,9 @@ EDA <- function(df, rmCol = NULL, groupingVar = NULL, janitor = TRUE, fullTable 
       varNum <- var
       varCat <- NA
       fmtFreq <- ""
-      meanSD = paste(round(sapply(df[i], mean, na.rm = TRUE), 2), "±",
+      meanSD <- paste(round(sapply(df[i], mean, na.rm = TRUE), 2), "±",
                      round(sapply(df[i], sd, na.rm = TRUE), 2))
+      med <- round(sapply(df[i], median, na.rm = TRUE), 2)
       minV <- round(min(df[i], na.rm = TRUE), 2)
       maxV <- round(max(df[i], na.rm = TRUE), 2)
 
@@ -117,6 +120,7 @@ EDA <- function(df, rmCol = NULL, groupingVar = NULL, janitor = TRUE, fullTable 
       # as categoric by showing the frequency of their two values.
       if (unique == 2) {
         meanSD <- ""
+        med <- ""
         values <- table(df[i])
         roundV <- round(prop.table(values)*100, 2)
         listFreq <- list(roundV)
@@ -127,16 +131,16 @@ EDA <- function(df, rmCol = NULL, groupingVar = NULL, janitor = TRUE, fullTable 
 
     # We generate the tables: varTable will contain all variables, varCatTable
     # only the categoric variables and varNumTable the numeric variables:
-    varTable <- rbind(varTable,c(var, sample, NAs, meanSD, minV, maxV, fmtFreq))
+    varTable <- rbind(varTable,c(var, sample, NAs, meanSD, med, minV, maxV, fmtFreq))
     varCatTable <- rbind(varCatTable, c(varCat, sample, NAs, fmtFreq))
-    varNumTable <- rbind(varNumTable, c(varNum, sample, NAs, meanSD, minV, maxV))
+    varNumTable <- rbind(varNumTable, c(varNum, sample, NAs, meanSD, med, minV, maxV))
 
   }
 
   # Then, we transform these tables to dataframes to operate with them:
-  varDF <- varTable %>% as.data.frame() %>% setNames(c("Variable", "N", "NAs[note]", "Mean ± SD", "Min", "Max", "Frequency"))
+  varDF <- varTable %>% as.data.frame() %>% setNames(c("Variable", "N", "NAs[note]", "Mean ± SD", "Median", "Min", "Max", "Frequency"))
   varCatDF <- varCatTable %>% as.data.frame() %>% setNames(c("Variable", "N", "NAs[note]", "Frequency"))
-  varNumDF <- varNumTable %>% as.data.frame() %>% setNames(c("Variable", "N", "NAs[note]", "Mean ± SD", "Min", "Max"))
+  varNumDF <- varNumTable %>% as.data.frame() %>% setNames(c("Variable", "N", "NAs[note]", "Mean ± SD", "Median", "Min", "Max"))
 
   # Removal of rows without variable name:
   varCatDF <- varCatDF %>% drop_na(Variable)
@@ -147,7 +151,7 @@ EDA <- function(df, rmCol = NULL, groupingVar = NULL, janitor = TRUE, fullTable 
 
   # And we print a table depending on the value of the fullTable argument.
   if (isTRUE(fullTable)) {
-    fmtTable <- kable(varDF, col.names = c("Variable", "N", "NAs[note]", "Mean ± SD", "Min", "Max", "Frequency"), caption = "General Numerical Summary", format = "html", align= "c") %>%
+    fmtTable <- kable(varDF, col.names = c("Variable", "N", "NAs[note]", "Mean ± SD", "Median", "Min", "Max", "Frequency"), caption = "General Numerical Summary", format = "html", align= "c") %>%
       row_spec(0, bold = T, color = "black", background = "#dcecf5") %>%
       column_spec(1, bold = T, border_right = T) %>%
       column_spec(3, color = ifelse(as.numeric(varDF$NAs) > thrNA, "red", "black")) %>%
@@ -165,7 +169,7 @@ EDA <- function(df, rmCol = NULL, groupingVar = NULL, janitor = TRUE, fullTable 
     print(catTable)
 
     # Numeric variables' table:
-    numTable <- kable(varNumDF, col.names = c("Variable", "N", "NAs[note]", "Mean ± SD", "Min", "Max"), caption = "Numerical Summary of Numeric Variables", format = "html", align= "c") %>%
+    numTable <- kable(varNumDF, col.names = c("Variable", "N", "NAs[note]", "Mean ± SD", "Median", "Min", "Max"), caption = "Numerical Summary of Numeric Variables", format = "html", align= "c") %>%
       row_spec(0, bold = T, color = "black", background = "#dcecf5") %>%
       column_spec(1, bold = T, border_right = T) %>%
       column_spec(3, color = ifelse(as.numeric(varNumDF$NAs) > thrNA, "red", "black")) %>%
